@@ -1,0 +1,9 @@
+databricks_workspace_url          = "https://REPLACE_WITH_DATABRICKS_WORKSPACE_URL"
+databricks_workspace_resource_id  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-enterprise-sales-lakehouse-dev/providers/Microsoft.Databricks/workspaces/dbw-enterprise-sales-dev"
+databricks_access_connector_id    = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-enterprise-sales-lakehouse-dev/providers/Microsoft.Databricks/accessConnectors/dbw-enterprise-sales-dev-ac"
+storage_account_name              = "esaleslakehousedev001"
+environment                       = "dev"
+catalog_name                      = "enterprise_sales"
+schema_name                       = "sales"
+databricks_principal              = "REPLACE_WITH_JOB_SERVICE_PRINCIPAL"
+use_managed_identity              = true

@@ -1,0 +1,43 @@
+bundle:
+  name: enterprise-sales-lakehouse
+
+include:
+  - resources/*.yml
+
+sync:
+  paths:
+    - ../notebooks
+
+variables:
+  databricks_host:
+    description: Azure Databricks workspace URL.
+    default: https://REPLACE_WITH_DATABRICKS_WORKSPACE_URL
+  spark_version:
+    description: Databricks Runtime used by the production-style job cluster.
+    default: 15.4.x-scala2.12
+  node_type_id:
+    description: Azure VM SKU for the job cluster.
+    default: Standard_DS3_v2
+  storage_account_name:
+    description: ADLS Gen2 storage account used by the Delta tables.
+    default: esaleslakehousedev001
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${var.databricks_host}
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      databricks_host: https://REPLACE_WITH_DEV_DATABRICKS_WORKSPACE_URL
+      storage_account_name: esaleslakehousedev001
+
+  prod:
+    mode: production
+    workspace:
+      host: ${var.databricks_host}
+      root_path: /Workspace/Shared/${bundle.name}
+    variables:
+      databricks_host: https://REPLACE_WITH_PROD_DATABRICKS_WORKSPACE_URL
+      storage_account_name: esaleslakehouseprod001

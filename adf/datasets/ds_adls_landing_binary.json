@@ -1,0 +1,32 @@
+{
+  "name": "ds_adls_landing_binary",
+  "properties": {
+    "parameters": {
+      "container": {
+        "type": "String"
+      },
+      "folderPath": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    },
+    "linkedServiceName": {
+      "referenceName": "ls_adls_gen2",
+      "type": "LinkedServiceReference",
+      "parameters": {
+        "storageAccountName": "@pipeline().parameters.storageAccountName"
+      }
+    },
+    "type": "Binary",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "@dataset().container",
+        "folderPath": "@dataset().folderPath",
+        "fileName": "@dataset().fileName"
+      }
+    }
+  }
+}

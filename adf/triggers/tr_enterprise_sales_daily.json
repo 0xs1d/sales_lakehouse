@@ -1,0 +1,33 @@
+{
+  "name": "tr_enterprise_sales_daily",
+  "properties": {
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "startTime": "2025-01-01T01:00:00Z",
+        "timeZone": "UTC"
+      }
+    },
+    "pipelines": [
+      {
+        "pipelineReference": {
+          "referenceName": "pl_enterprise_sales_lakehouse_incremental",
+          "type": "PipelineReference"
+        },
+        "parameters": {
+          "environment": "dev",
+          "storageAccountName": "__STORAGE_ACCOUNT_NAME__",
+          "databricksWorkspaceResourceId": "__DATABRICKS_WORKSPACE_RESOURCE_ID__",
+          "databricksWorkspaceUrl": "__DATABRICKS_WORKSPACE_URL__",
+          "catalog": "enterprise_sales",
+          "schema": "sales"
+        }
+      }
+    ],
+    "annotations": [
+      "daily-load"
+    ]
+  }
+}

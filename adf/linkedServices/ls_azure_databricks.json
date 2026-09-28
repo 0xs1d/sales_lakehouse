@@ -1,0 +1,23 @@
+{
+  "name": "ls_azure_databricks",
+  "properties": {
+    "parameters": {
+      "workspaceResourceId": {
+        "type": "String"
+      },
+      "workspaceUrl": {
+        "type": "String"
+      }
+    },
+    "type": "AzureDatabricks",
+    "typeProperties": {
+      "domain": "@linkedService().workspaceUrl",
+      "workspaceResourceId": "@linkedService().workspaceResourceId",
+      "authentication": "MSI",
+      "newClusterVersion": "15.4.x-scala2.12",
+      "newClusterNodeType": "Standard_DS3_v2",
+      "newClusterNumOfWorkers": 2,
+      "dataSecurityMode": "USER_ISOLATION"
+    }
+  }
+}

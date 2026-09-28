@@ -1,0 +1,143 @@
+resources:
+  jobs:
+    enterprise_sales_lakehouse:
+      name: enterprise-sales-lakehouse-${bundle.target}
+      max_concurrent_runs: 1
+      timeout_seconds: 43200
+      queue:
+        enabled: true
+      parameters:
+        - name: environment
+          default: ${bundle.target}
+        - name: storageAccountName
+          default: ${var.storage_account_name}
+        - name: pipelineRunId
+          default: databricks-${bundle.target}
+        - name: catalog
+          default: enterprise_sales
+        - name: schema
+          default: sales
+      job_clusters:
+        - job_cluster_key: enterprise_sales_job_cluster
+          new_cluster:
+            spark_version: ${var.spark_version}
+            node_type_id: ${var.node_type_id}
+            num_workers: 2
+            data_security_mode: USER_ISOLATION
+            spark_conf:
+              spark.databricks.delta.preview.enabled: 'true'
+      tasks:
+        - task_key: source_generation
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/01_Enterprise_Sales_Source_Generation.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: bronze_ingestion
+          depends_on:
+            - task_key: source_generation
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/02_Bronze_Sales_Ingestion.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: silver_transformation
+          depends_on:
+            - task_key: bronze_ingestion
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/03_Silver_Sales_Transformation.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: incremental_processing
+          depends_on:
+            - task_key: silver_transformation
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/05_Incremental_Sales_Processing.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: gold_analytics
+          depends_on:
+            - task_key: incremental_processing
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/04_Gold_Sales_Analytics.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: data_quality_reconciliation
+          depends_on:
+            - task_key: gold_analytics
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/06_Data_Quality_and_Reconciliation.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: audit_monitoring
+          depends_on:
+            - task_key: data_quality_reconciliation
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/07_Audit_and_Monitoring.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: performance_business_analytics
+          depends_on:
+            - task_key: audit_monitoring
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/08_Performance_and_Business_Analytics.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'
+
+        - task_key: project_validation
+          depends_on:
+            - task_key: performance_business_analytics
+          job_cluster_key: enterprise_sales_job_cluster
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/09_Project_Validation.py
+            base_parameters:
+              environment: '{{job.parameters.environment}}'
+              storageAccountName: '{{job.parameters.storageAccountName}}'
+              pipelineRunId: '{{job.parameters.pipelineRunId}}'
+              catalog: '{{job.parameters.catalog}}'
+              schema: '{{job.parameters.schema}}'

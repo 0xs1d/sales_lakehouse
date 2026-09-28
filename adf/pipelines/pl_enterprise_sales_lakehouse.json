@@ -1,0 +1,360 @@
+{
+  "name": "pl_enterprise_sales_lakehouse",
+  "properties": {
+    "parameters": {
+      "environment": {
+        "type": "String",
+        "defaultValue": "dev"
+      },
+      "storageAccountName": {
+        "type": "String"
+      },
+      "databricksWorkspaceResourceId": {
+        "type": "String"
+      },
+      "databricksWorkspaceUrl": {
+        "type": "String"
+      },
+      "databricksNotebookRoot": {
+        "type": "String",
+        "defaultValue": "/Shared/enterprise-sales-lakehouse/notebooks"
+      },
+      "runId": {
+        "type": "String",
+        "defaultValue": "@pipeline().RunId"
+      },
+      "catalog": {
+        "type": "String",
+        "defaultValue": "enterprise_sales"
+      },
+      "schema": {
+        "type": "String",
+        "defaultValue": "sales"
+      }
+    },
+    "variables": {
+      "pipelineStartTime": {
+        "type": "String",
+        "defaultValue": "@utcnow()"
+      }
+    },
+    "activities": [
+      {
+        "name": "01_Source_Generation",
+        "type": "DatabricksNotebook",
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/01_Enterprise_Sales_Source_Generation')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "02_Bronze_Ingestion",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "01_Source_Generation",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/02_Bronze_Sales_Ingestion')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "03_Silver_Transformation",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "02_Bronze_Ingestion",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/03_Silver_Sales_Transformation')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "05_Incremental_Processing",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "03_Silver_Transformation",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/05_Incremental_Sales_Processing')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "04_Gold_Analytics",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "05_Incremental_Processing",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/04_Gold_Sales_Analytics')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "06_Data_Quality_Reconciliation",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "04_Gold_Analytics",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/06_Data_Quality_and_Reconciliation')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "07_Audit_Monitoring",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "06_Data_Quality_Reconciliation",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/07_Audit_and_Monitoring')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "08_Performance_Business_Analytics",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "07_Audit_Monitoring",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/08_Performance_and_Business_Analytics')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      },
+      {
+        "name": "09_Project_Validation",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "08_Performance_Business_Analytics",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference",
+          "parameters": {
+            "workspaceResourceId": "@pipeline().parameters.databricksWorkspaceResourceId",
+            "workspaceUrl": "@pipeline().parameters.databricksWorkspaceUrl"
+          }
+        },
+        "typeProperties": {
+          "notebookPath": "@concat(pipeline().parameters.databricksNotebookRoot, '/09_Project_Validation')",
+          "baseParameters": {
+            "environment": "@pipeline().parameters.environment",
+            "storageAccountName": "@pipeline().parameters.storageAccountName",
+            "pipelineRunId": "@pipeline().parameters.runId",
+            "catalog": "@pipeline().parameters.catalog",
+            "schema": "@pipeline().parameters.schema"
+          }
+        }
+      }
+    ],
+    "folder": {
+      "name": "Enterprise Sales Lakehouse"
+    },
+    "annotations": [
+      "enterprise-sales-lakehouse",
+      "medallion-architecture"
+    ]
+  }
+}

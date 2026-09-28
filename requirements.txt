@@ -1,0 +1,6 @@
+# Enterprise Sales Lakehouse
+# Local development dependencies
+# Databricks Runtime provides Spark and Delta Lake in the managed environment.
+
+pyspark>=3.5,<4.0
+delta-spark>=3.0,<4.0
