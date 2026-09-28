@@ -1,0 +1,75 @@
+name: Python CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Enterprise Sales Lakehouse
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate notebook syntax
+        run: |
+          python -m py_compile \
+            notebooks/01_Enterprise_Sales_Source_Generation.py \
+            notebooks/02_Bronze_Sales_Ingestion.py \
+            notebooks/03_Silver_Sales_Transformation.py \
+            notebooks/04_Gold_Sales_Analytics.py \
+            notebooks/05_Incremental_Sales_Processing.py \
+            notebooks/06_Data_Quality_and_Reconciliation.py \
+            notebooks/07_Audit_and_Monitoring.py \
+            notebooks/08_Performance_and_Business_Analytics.py \
+            notebooks/09_Project_Validation.py
+
+      - name: Verify required repository files
+        run: |
+          test -f README.md
+          test -f requirements.txt
+          test -f LICENSE
+          test -f sql/business_queries.sql
+          test -f docs/ARCHITECTURE.md
+          test -f docs/DATA_DICTIONARY.md
+          test -f docs/PIPELINE_FLOW.md
+          test -f docs/AZURE_DEPLOYMENT.md
+          test -f infrastructure/main.bicep
+          test -f adf/pipelines/pl_enterprise_sales_lakehouse.json
+          test -f adf/pipelines/pl_enterprise_sales_lakehouse_incremental.json
+          test -f databricks/databricks.yml
+          test -f tests/test_project_contracts.py
+
+      - name: Validate Azure JSON artifacts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for path in Path("adf").rglob("*.json"):
+              json.loads(path.read_text())
+          print("ADF JSON validation passed")
+          PY
+
+      - name: Run repository data-quality and contract tests
+        run: python -m unittest discover --start-directory tests --pattern 'test_*.py' --verbose
+
+      - name: Verify execution evidence
+        run: |
+          test -f screenshots/01_customer_source_data.png
+          test -f screenshots/29_project_validation_100_percent.png
+
+      - name: Validation complete
+        run: echo "Enterprise Sales Lakehouse validation passed."
